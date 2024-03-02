@@ -46,19 +46,17 @@ services:
   nrdb_api_server:
     restart: unless-stopped
     image: registry.digitalocean.com/nsgcr/nrdb-api-server:latest
-    ports:
-      - "3000:3000"
     networks:
       - backend
       - null_signal
     env_file: .env
     # rely on the RAILS_ENV value of the host machine
     environment:
-      POSTGRES_PASSWORD: netrunnerdb
-      RAILS_ENV: $RAILS_ENV
+      - POSTGRES_PASSWORD
+      - RAILS_ENV
     # starts the app container after the DB and netrunner_cards_json containers
     depends_on:
-      - db
+      - db-nrdb-api
       - netrunner_cards_json
     volumes:
       - ./config/database.yml:/var/www/nrdb-api/config/database.yml
@@ -66,20 +64,55 @@ services:
       - nrdb-api-logs:/var/www/nrdb-api/log
 
 
-  db:
+  cobra:
+    restart: unless-stopped
+    image: registry.digitalocean.com/nsgcr/cobra:latest
+    networks:
+      - backend
+      - null_signal
+    depends_on: 
+      - db-cobra
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD
+      - RAILS_ENV
+    volumes:
+      - ./config/database.yml:/var/www/cobra/config/database.yml
+      - ./config/secrets.yml:/var/www/cobra/config/secrets.yml
+      - cobra-logs:/var/www/cobra/log
+      - cobra-assets:/var/www/cobra/public/assets
+      - cobra-tmp:/var/www/cobra/tmp
+
+
+  db-nrdb-api:
     restart: unless-stopped
     image: postgres:14.5-alpine
     networks:
      - backend
+    env_file: .env
     environment:
-      POSTGRES_PASSWORD: netrunnerdb
+      - POSTGRES_PASSWORD
     volumes:
       - nrdb-api-postgres:/var/lib/postgresql/data
+
+
+  db-cobra:
+    restart: unless-stopped
+    image: postgres:14.5-alpine
+    networks:
+     - backend
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD
+    volumes:
+      - cobra-postgres:/var/lib/postgresql/data
+
 
 networks:
   backend:
   null_signal:
     external: true
+
 
 volumes:
   conf:
@@ -89,4 +122,8 @@ volumes:
   acme:
   nrdb-api-logs:
   nrdb-api-postgres:
+  cobra-assets:
+  cobra-logs:
+  cobra-postgres:
+  cobra-tmp:
   netrunner-cards-json:
