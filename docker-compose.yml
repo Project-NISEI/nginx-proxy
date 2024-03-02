@@ -1,6 +1,7 @@
-version: '2'
+version: '3.2'
 
 services:
+
   nginx-proxy:
     restart: unless-stopped
     image: nginxproxy/nginx-proxy
@@ -18,6 +19,7 @@ services:
     networks:
       - null_signal
 
+
   acme-companion:
     restart: unless-stopped
     image: nginxproxy/acme-companion
@@ -33,7 +35,49 @@ services:
     networks:
       - null_signal
 
+
+  netrunner_cards_json:
+    restart: none
+    image: registry.digitalocean.com/nsgcr/netrunner-cards-json:latest
+    volumes:
+      - netrunner-cards-json:/mnt/netrunner-cards-json
+
+
+  nrdb_api_server:
+    restart: unless-stopped
+    image: registry.digitalocean.com/nsgcr/nrdb-api-server:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - backend
+      - null_signal
+    env_file: .env
+    # rely on the RAILS_ENV value of the host machine
+    environment:
+      POSTGRES_PASSWORD: netrunnerdb
+      RAILS_ENV: $RAILS_ENV
+    # starts the app container after the DB and netrunner_cards_json containers
+    depends_on:
+      - db
+      - netrunner_cards_json
+    volumes:
+      - ./config/database.yml:/var/www/nrdb-api/config/database.yml
+      - netrunner-cards-json:/netrunner-cards-json
+      - nrdb-api-logs:/var/www/nrdb-api/log
+
+
+  db:
+    restart: unless-stopped
+    image: postgres:14.5-alpine
+    networks:
+     - backend
+    environment:
+      POSTGRES_PASSWORD: netrunnerdb
+    volumes:
+      - nrdb-api-postgres:/var/lib/postgresql/data
+
 networks:
+  backend:
   null_signal:
     external: true
 
@@ -43,3 +87,6 @@ volumes:
   html:
   certs:
   acme:
+  nrdb-api-logs:
+  nrdb-api-postgres:
+  netrunner-cards-json:
