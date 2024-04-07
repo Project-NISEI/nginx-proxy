@@ -1,10 +1,11 @@
-version: '3.2'
+version: '3.8'
 
 services:
 
   nginx-proxy:
     restart: unless-stopped
     image: nginxproxy/nginx-proxy:latest
+    profiles: [staging]
     container_name: nginx-proxy
     ports:
       - "80:80"
@@ -23,6 +24,7 @@ services:
   acme-companion:
     restart: unless-stopped
     image: nginxproxy/acme-companion:latest
+    profiles: [staging]
     container_name: nginx-proxy-acme
     environment:
       - DEFAULT_EMAIL=mail@yourdomain.tld
@@ -39,6 +41,7 @@ services:
   netrunner_cards_json:
     restart: none
     image: registry.digitalocean.com/nsgcr/netrunner-cards-json:latest
+    profiles: [staging]
     volumes:
       - netrunner-cards-json:/mnt/netrunner-cards-json
 
@@ -46,6 +49,7 @@ services:
   nrdb_api_server:
     restart: unless-stopped
     image: registry.digitalocean.com/nsgcr/nrdb-api-server:latest
+    profiles: [staging]
     networks:
       - backend
       - null_signal
@@ -67,6 +71,7 @@ services:
   cobra:
     restart: unless-stopped
     image: registry.digitalocean.com/nsgcr/cobra:latest
+    profiles: [staging]
     networks:
       - backend
       - null_signal
@@ -81,12 +86,14 @@ services:
       - ./config/secrets.yml:/var/www/cobra/config/secrets.yml
       - cobra-logs:/var/www/cobra/log
       - cobra-assets:/var/www/cobra/public/assets
+      - cobra-vite:/var/www/cobra/public/vite
       - cobra-tmp:/var/www/cobra/tmp
 
 
   db-nrdb-api:
     restart: unless-stopped
     image: postgres:14.5-alpine
+    profiles: [staging]
     networks:
      - backend
     env_file: .env
@@ -99,6 +106,7 @@ services:
   db-cobra:
     restart: unless-stopped
     image: postgres:14.5-alpine
+    profiles: [staging]
     networks:
      - backend
     env_file: .env
@@ -111,7 +119,7 @@ services:
   rules:
     restart: unless-stopped
     image: registry.digitalocean.com/nsgcr/netrunner-comprehensive-rules:latest
-
+    profiles: [staging]
     volumes:
       - rules:/var/www/html
   
@@ -119,21 +127,17 @@ services:
   rules-web:
     restart: unless-stopped
     image: php:8.2-cli-alpine
-
+    profiles: [staging]
     ports:
       - "8999:80"
-
     depends_on: 
       - rules
-
     volumes:
       - rules:/var/www/html
-
     command:
       - php
       - -S
       - 0.0.0.0:80
-
     working_dir: /var/www/html
 
 
@@ -151,6 +155,7 @@ volumes:
   nrdb-api-logs:
   nrdb-api-postgres:
   cobra-assets:
+  cobra-vite:
   cobra-logs:
   cobra-postgres:
   cobra-tmp:
